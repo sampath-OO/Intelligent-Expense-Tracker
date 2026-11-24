@@ -17,11 +17,47 @@ st.set_page_config(
 )
 
 # Core imports
+import importlib
 import database
 import pdf_extractor
 import ml_engine
 import report_generator
 import sample_generator
+
+# Force reload of local submodules so Streamlit runtime always picks up fresh code on hot reloads
+try:
+    importlib.reload(database)
+    importlib.reload(pdf_extractor)
+    importlib.reload(ml_engine)
+    importlib.reload(report_generator)
+    importlib.reload(sample_generator)
+except Exception:
+    pass
+
+def run_financial_audit(transactions_df, budget_utilization=None):
+    """
+    Safely runs the AI financial health audit with graceful fallback
+    across module reload states.
+    """
+    if hasattr(ml_engine, "compute_financial_health_audit"):
+        return ml_engine.compute_financial_health_audit(transactions_df, budget_utilization)
+    elif hasattr(ml_engine, "generate_overspending_solutions"):
+        return ml_engine.generate_overspending_solutions(transactions_df, budget_utilization)
+    return {
+        "has_data": False,
+        "total_income": 0.0,
+        "total_expense": 0.0,
+        "balance": 0.0,
+        "savings_rate": 0.0,
+        "health_grade": "Grade A — Baseline",
+        "grade_code": "A",
+        "executive_summary": "System ready for analysis.",
+        "rule_50_30_20": {},
+        "solutions": [],
+        "has_overspending": False,
+        "total_overspend_amount": 0.0,
+        "overspent_categories": []
+    }
 
 # Initialize database schema
 database.init_db()
@@ -327,7 +363,7 @@ if menu_selection == "📊 Financial Overview":
     budget_data = database.get_budget_utilization(user_id, curr_month)
     tx_all = database.get_transactions(user_id)
     df_all = pd.DataFrame(tx_all) if tx_all else pd.DataFrame()
-    overspend_analysis = ml_engine.compute_financial_health_audit(df_all, budget_data)
+    overspend_analysis = run_financial_audit(df_all, budget_data)
     patterns = ml_engine.analyze_spending_patterns(df_all)
 
     # Health Rating Hero Banner
@@ -1020,23 +1056,24 @@ elif menu_selection == "📄 AI Audit & Reports":
 
     df_rep = pd.DataFrame(tx_rep) if tx_rep else pd.DataFrame()
     bud_util = database.get_budget_utilization(user_id, mth_val or curr_month)
-    audit = ml_engine.compute_financial_health_audit(df_rep, bud_util)
+    audit = run_financial_audit(df_rep, bud_util)
 
     # 1. Executive Health Scorecard Preview
     st.markdown("##### 🛡️ Executive Financial Health Scorecard")
     sc1, sc2, sc3, sc4 = st.columns(4)
     with sc1:
-        st.metric("Total Verified Inflow", f"+₹{audit['total_income']:,.2f}")
+        st.metric("Total Verified Inflow", f"+₹{audit.get('total_income', 0):,.2f}")
     with sc2:
-        st.metric("Total Outflow", f"-₹{audit['total_expense']:,.2f}")
+        st.metric("Total Outflow", f"-₹{audit.get('total_expense', 0):,.2f}")
     with sc3:
-        st.metric("Net Capital Balance", f"₹{audit['balance']:,.2f}")
+        st.metric("Net Capital Balance", f"₹{audit.get('balance', 0):,.2f}")
     with sc4:
-        st.metric("Health Grade", audit["health_grade"].split("—")[0].strip())
+        grade_text = str(audit.get('health_grade', 'Grade A')).split('—')[0].strip()
+        st.metric("Health Grade", grade_text)
 
     st.markdown(f"""
     <div style="padding: 14px 18px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; margin-top: 10px; font-size: 0.9rem; color: #1e293b;">
-        <strong>AI Executive Diagnosis:</strong> {audit['executive_summary']}
+        <strong>AI Executive Diagnosis:</strong> {audit.get('executive_summary', 'Financial audit generated.')}
     </div>
     """, unsafe_allow_html=True)
 

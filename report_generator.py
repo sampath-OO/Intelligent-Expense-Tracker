@@ -205,7 +205,10 @@ def generate_pdf_report(user_id, user_name, user_email, month=None, category=Non
     df = pd.DataFrame(txs) if txs else pd.DataFrame()
 
     # Run AI Financial Audit Computation
-    audit = ml_engine.compute_financial_health_audit(df, budget_util)
+    if hasattr(ml_engine, "compute_financial_health_audit"):
+        audit = ml_engine.compute_financial_health_audit(df, budget_util)
+    else:
+        audit = ml_engine.generate_overspending_solutions(df, budget_util)
 
     # ---------------------------------------------------------
     # Header Banner
