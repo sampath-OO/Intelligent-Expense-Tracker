@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}AI Financial Insights - Intelligent Expense Tracker{% endblock %}
+{% block header_title %}AI Financial Insights & Analytics{% endblock %}
+{% block header_subtitle %}Data-driven spending intelligence, anomaly detection and personalized recommendations{% endblock %}
+
+{% block content %}
+{% if not patterns.has_data %}
+  <!-- Empty State for Insufficient Data -->
+  <div class="card" style="text-align: center; padding: 60px 24px;">
+    <div style="font-size: 3rem; margin-bottom: 16px;">📊</div>
+    <h2 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 8px;">Insufficient Historical Data</h2>
+    <p style="color: #64748b; max-width: 520px; margin: 0 auto 24px auto; font-size: 0.95rem;">
+      We need at least a few recorded transactions to run the machine learning anomaly models, compute spending patterns, and provide personalized financial recommendations.
+    </p>
+    <a href="{{ url_for('upload_page') }}" class="btn btn-primary">
+      Upload Bank Statement PDF
+    </a>
+  </div>
+{% else %}
+
+  <!-- 1. Personalized Saving Recommendations -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">
+          <span>💡</span> Personalized Financial Recommendations
+        </div>
+        <div class="card-subtitle">Calculated directly from your actual recorded spending and budget limits</div>
+      </div>
+    </div>
+
+    <div>
+      {% for rec in recommendations %}
+        <div class="insight-card severity-{{ rec.severity }}">
+          <div class="insight-icon" style="background: {% if rec.severity == 'warning' %}#fffbeb; color: #d97706;{% elif rec.severity == 'danger' %}#fef2f2; color: #dc2626;{% elif rec.severity == 'success' %}#ecfdf5; color: #16a34a;{% else %}#eff6ff; color: #2563eb;{% endif %}">
+            {% if rec.severity == 'danger' %}⚠️{% elif rec.severity == 'warning' %}🔔{% elif rec.severity == 'success' %}✓{% else %}💡{% endif %}
+          </div>
+          <div class="insight-content" style="flex:1;">
+            <h4>{{ rec.title }}</h4>
+            <p>{{ rec.message }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 2. Behavioral Spending Patterns (Pandas Analysis) -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">
+          <span>📈</span> Spending Pattern Analysis (Pandas Engine)
+        </div>
+        <div class="card-subtitle">Statistical decomposition of daily spend, category frequency, and timeline</div>
+      </div>
+    </div>
+
+    <div class="summary-grid" style="margin-bottom: 20px;">
+      <div class="summary-card">
+        <div class="summary-icon icon-blue">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <div class="summary-label">Average Per Transaction</div>
+          <div class="summary-value">₹{{ "{:,.2f}".format(patterns.avg_per_tx or 0.0) }}</div>
+          <div class="summary-trend">{{ patterns.tx_count or 0 }} Expense Transactions</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon icon-purple">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <div class="summary-label">Average Daily Spending</div>
+          <div class="summary-value">₹{{ "{:,.2f}".format(patterns.daily_avg or 0.0) }}</div>
+          <div class="summary-trend">Across {{ patterns.days_active or 0 }} Active Days</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon icon-green">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </div>
+        <div>
+          <div class="summary-label">Highest Spending Day</div>
+          <div class="summary-value" style="font-size: 1.25rem;">{{ patterns.top_spending_day or 'N/A' }}</div>
+          <div class="summary-trend">Weekend: ₹{{ "{:,.0f}".format(patterns.weekend_spent or 0.0) }} | Weekday: ₹{{ "{:,.0f}".format(patterns.weekday_spent or 0.0) }}</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon icon-amber">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <div>
+          <div class="summary-label">Top Category</div>
+          <div class="summary-value" style="font-size: 1.15rem;">{{ patterns.top_category or 'N/A' }}</div>
+          <div class="summary-trend">₹{{ "{:,.2f}".format(patterns.top_cat_amount or 0.0) }} total outflow</div>
+        </div>
+      </div>
+
+      <div class="summary-card">
+        <div class="summary-icon icon-red">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+        </div>
+        <div>
+          <div class="summary-label">Micro-Payments (&le; ₹50)</div>
+          <div class="summary-value">{{ patterns.micro_count or 0 }} Taps</div>
+          <div class="summary-trend">₹{{ "{:,.2f}".format(patterns.micro_total or 0.0) }} small payments</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Highest Single Expense Callout -->
+    {% if patterns.max_tx %}
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <span style="font-size: 0.74rem; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">Highest Recorded Outflow</span>
+          <div style="font-size: 1rem; font-weight: 700; color: #0f172a; margin-top: 2px;">
+            {{ patterns.max_tx.description }} <span class="badge badge-info">{{ patterns.max_tx.category }}</span> on {{ patterns.max_tx.date }}
+          </div>
+        </div>
+        <div class="num-mono" style="font-size: 1.35rem; font-weight: 800; color: #ef4444;">
+          -₹{{ "{:,.2f}".format(patterns.max_tx.amount or 0.0) }}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- 3. Unusual Transaction Detection (Isolation Forest) -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">
+          <span>🔍</span> Unusual Transaction Detection (Isolation Forest ML)
+        </div>
+        <div class="card-subtitle">
+          Statistically anomalous amounts detected using unsupervised machine learning
+        </div>
+      </div>
+      <span class="badge badge-warning">Scikit-Learn Model</span>
+    </div>
+
+    <!-- Clear distinction notice -->
+    <div style="padding: 12px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 0.82rem; color: #1e40af; margin-bottom: 18px;">
+      <strong>Informational Anomaly vs Fraud:</strong> These transactions are statistically unusual compared to your typical transaction size and day-of-month timing. They are highlighted for your awareness and do not necessarily indicate fraudulent activity.
+    </div>
+
+    {% if unusual_transactions %}
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th style="text-align: right;">Amount</th>
+              <th>Anomaly Reason</th>
+              <th style="text-align: center;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in unusual_transactions %}
+              <tr>
+                <td class="num-mono" style="white-space: nowrap; font-size: 0.82rem; color: #64748b;">{{ item.date }}</td>
+                <td style="font-weight: 600; color: #0f172a;">{{ item.description }}</td>
+                <td><span class="badge badge-info">{{ item.category }}</span></td>
+                <td class="num-mono" style="text-align: right; font-weight: 700; color: #ef4444;">
+                  ₹{{ "{:,.2f}".format(item.amount or 0.0) }}
+                </td>
+                <td style="font-size: 0.85rem; color: #475569;">
+                  {{ item.reason }}
+                </td>
+                <td style="text-align: center;">
+                  <span class="badge badge-warning">Flagged Outlier</span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="padding: 24px; text-align: center; color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+        ✓ <strong>Clean History:</strong> No statistical outliers or abnormal transaction spikes detected in your spending history.
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- 4. Month-over-Month Expense Comparison -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">
+          <span>📅</span> Month-over-Month Spending Comparison
+        </div>
+        <div class="card-subtitle">Trajectory and variance against your previous billing cycles</div>
+      </div>
+    </div>
+
+    {% if comparison.has_comparison %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <div style="padding: 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <div style="font-size: 0.76rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Previous ({{ comparison.prev_month }})</div>
+          <div class="num-mono" style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 4px;">
+            ₹{{ "{:,.2f}".format(comparison.prev_total or 0.0) }}
+          </div>
+        </div>
+
+        <div style="padding: 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <div style="font-size: 0.76rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Latest ({{ comparison.latest_month }})</div>
+          <div class="num-mono" style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 4px;">
+            ₹{{ "{:,.2f}".format(comparison.latest_total or comparison.curr_total or 0.0) }}
+          </div>
+        </div>
+
+        <div style="padding: 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <div style="font-size: 0.76rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Net Shift</div>
+          <div class="num-mono" style="font-size: 1.35rem; font-weight: 800; color: {% if (comparison.diff_amount or 0.0) > 0 %}#ef4444{% else %}#10b981{% endif %}; margin-top: 4px;">
+            {% if (comparison.diff_amount or 0.0) > 0 %}+{% endif %}₹{{ "{:,.2f}".format(comparison.diff_amount or 0.0) }}
+            <span style="font-size: 0.85rem; font-weight: 600;">({{ "{:+.1f}%".format(comparison.percent_change or 0.0) }})</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Comparison Table -->
+      {% if comparison.category_comparison or comparison.category_changes %}
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th style="text-align: right;">{{ comparison.prev_month }}</th>
+                <th style="text-align: right;">{{ comparison.latest_month }}</th>
+                <th style="text-align: right;">Variance (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cat in (comparison.category_comparison or comparison.category_changes) %}
+                <tr>
+                  <td style="font-weight: 600;">{{ cat.category }}</td>
+                  <td class="num-mono" style="text-align: right;">₹{{ "{:,.2f}".format(cat.prev or cat.previous or 0.0) }}</td>
+                  <td class="num-mono" style="text-align: right;">₹{{ "{:,.2f}".format(cat.latest or cat.current or 0.0) }}</td>
+                  <td class="num-mono" style="text-align: right; font-weight: 700; color: {% if (cat.diff or cat.difference or 0.0) > 0 %}#ef4444{% else %}#10b981{% endif %};">
+                    {% if (cat.diff or cat.difference or 0.0) > 0 %}+{% endif %}₹{{ "{:,.2f}".format(cat.diff or cat.difference or 0.0) }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    {% else %}
+      <div style="padding: 24px; text-align: center; color: #64748b; background: #f8fafc; border-radius: 8px;">
+        {{ comparison.message or "Need transactions across at least two distinct months to generate comparative analysis." }}
+      </div>
+    {% endif %}
+  </div>
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account - Intelligent Expense Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="brand-icon">₹</div>
+      <div>
+        <div class="brand-title" style="font-size: 1.25rem;">ExpenseAI</div>
+        <div class="brand-subtitle">Smart Wealth & Finance</div>
+      </div>
+    </div>
+
+    <h2 class="auth-title">Create Account</h2>
+    <p class="auth-subtitle">Initialize your private on-device financial vault</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="toast toast-{{ category }}" style="position:static; margin-bottom: 20px; max-width: 100%;">
+            <div style="flex:1;">{{ message }}</div>
+            <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px;">&times;</button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('register') }}" method="POST">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Rahul Sharma" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" name="email" class="form-control" placeholder="you@example.com" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" placeholder="••••••••" minlength="4" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 12px; font-size: 0.95rem;">
+        Initialize Vault &rarr;
+      </button>
+    </form>
+
+    <div style="margin-top: 24px; text-align: center; font-size: 0.88rem; color: #64748b;">
+      Already have an account? <a href="{{ url_for('login') }}" style="color: #2563eb; font-weight: 700; text-decoration: none;">Sign in here</a>
+    </div>
+
+    <div style="margin-top: 24px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.78rem; color: #475569; display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 1rem;">🛡️</span>
+      <span><strong>Enterprise Security:</strong> Passwords hashed with PBKDF2. Zero cloud leaks, zero telemetry tracking.</span>
+    </div>
+  </div>
+</body>
+</html>

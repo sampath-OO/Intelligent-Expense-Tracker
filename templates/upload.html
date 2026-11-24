@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Statement - Intelligent Expense Tracker{% endblock %}
+{% block header_title %}Bank Statement Upload{% endblock %}
+{% block header_subtitle %}Upload monthly PDF statements to automatically extract, categorize, and audit transactions{% endblock %}
+
+{% block content %}
+<!-- Process Pipeline Steps Banner -->
+<div class="card" style="margin-bottom: 24px; padding: 18px 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #ffffff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.85rem;">1</div>
+      <div>
+        <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Upload Statement</div>
+        <div style="font-size: 0.76rem; color: #64748b;">Drop or pick PDF file</div>
+      </div>
+    </div>
+    <div style="color: #cbd5e1; font-weight: 700;">&rarr;</div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; border: 1px solid #bfdbfe;">2</div>
+      <div>
+        <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Multi-Strategy Parsing</div>
+        <div style="font-size: 0.76rem; color: #64748b;">Dates, Debits, Credits</div>
+      </div>
+    </div>
+    <div style="color: #cbd5e1; font-weight: 700;">&rarr;</div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; border: 1px solid #bfdbfe;">3</div>
+      <div>
+        <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Review & Edit</div>
+        <div style="font-size: 0.76rem; color: #64748b;">Verify and adjust categories</div>
+      </div>
+    </div>
+    <div style="color: #cbd5e1; font-weight: 700;">&rarr;</div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 32px; height: 32px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; border: 1px solid #bfdbfe;">4</div>
+      <div>
+        <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Sync to Local Vault</div>
+        <div style="font-size: 0.76rem; color: #64748b;">Zero-duplicate guarantee</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 24px; margin-bottom: 24px;">
+  <!-- Upload Zone Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Digital Bank Statement (PDF)</div>
+        <div class="card-subtitle">Compatible with UPI apps (PhonePe, GPay, Paytm) and major digital bank accounts</div>
+      </div>
+    </div>
+
+    <!-- Drag & Drop Zone -->
+    <div class="upload-dropzone" id="uploadDropzone">
+      <div class="upload-icon">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+      </div>
+      <div class="upload-text">Click or drag & drop bank statement PDF</div>
+      <div class="upload-hint">Only .pdf files with selectable digital text &bull; Max 25 MB</div>
+      <input type="file" id="pdfFileInput" accept="application/pdf" style="display: none;">
+    </div>
+
+    <!-- Bank compatibility pills -->
+    <div style="margin-top: 16px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+      <span style="font-size: 0.74rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Verified Formats:</span>
+      <span class="badge badge-info">PhonePe</span>
+      <span class="badge badge-info">Google Pay</span>
+      <span class="badge badge-info">Paytm</span>
+      <span class="badge badge-info">SBI</span>
+      <span class="badge badge-info">HDFC</span>
+      <span class="badge badge-info">ICICI</span>
+      <span class="badge badge-info">Axis</span>
+      <span class="badge badge-info">Any Standard PDF</span>
+    </div>
+
+    <!-- File info banner -->
+    <div id="selectedFileInfo" style="display: none; margin-top: 16px; padding: 14px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.3rem;">📄</span>
+          <div>
+            <div style="font-size: 0.9rem; font-weight: 700; color: #1e293b;" id="selectedFileName">statement.pdf</div>
+            <div style="font-size: 0.76rem; color: #64748b;">Ready to process</div>
+          </div>
+        </div>
+        <span class="badge badge-info">PDF Selected</span>
+      </div>
+    </div>
+
+    <!-- Status / Animation Box -->
+    <div id="uploadStatusBox" style="display: none; margin-top: 16px;"></div>
+  </div>
+
+  <!-- Instructions & Sample Statement Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">How It Works & Testing</div>
+        <div class="card-subtitle">Automated multi-strategy parsing with fraud-safe storage</div>
+      </div>
+    </div>
+
+    <div style="font-size: 0.88rem; color: #475569; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div style="width: 24px; height: 24px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.8rem;">1</div>
+        <div><strong>Select your PDF:</strong> Upload your statement (PhonePe, Google Pay, SBI, HDFC, ICICI, etc.).</div>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div style="width: 24px; height: 24px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.8rem;">2</div>
+        <div><strong>Automatic Extraction:</strong> Our parsing engine extracts dates, descriptions, debit expenses, credit deposits, and applies smart categorization.</div>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div style="width: 24px; height: 24px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.8rem;">3</div>
+        <div><strong>Verify & Correct:</strong> Review transactions in the editable table below. Correct any values if necessary before committing to your database.</div>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div style="width: 24px; height: 24px; border-radius: 50%; background: #eff6ff; color: #2563eb; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.8rem;">4</div>
+        <div><strong>Duplicate Prevention:</strong> SHA-256 fingerprinting ensures re-uploading the same statement never creates duplicate entries.</div>
+      </div>
+
+      <!-- Scanned statement alert notice -->
+      <div style="padding: 12px 14px; background: #fffbeb; border: 1px solid #fef08a; border-radius: 8px; font-size: 0.8rem; color: #854d0e;">
+        <strong>Note on Scanned Documents:</strong> If a scanned PDF (image-only without digital selectable text) is uploaded, an informative notice is displayed as OCR is not included in this local edition.
+      </div>
+
+      <!-- Sample statement download for immediate testing -->
+      <div style="margin-top: 8px; padding: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <div style="font-weight: 600; color: #166534; font-size: 0.9rem;">Need a sample PDF to test?</div>
+          <div style="font-size: 0.78rem; color: #15803d;">Download our pre-generated sample bank statement.</div>
+        </div>
+        <a href="{{ url_for('download_sample_pdf_route') }}" class="btn btn-secondary btn-sm" download>
+          Download Sample PDF
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Extracted Transactions Review Table (Displayed after upload) -->
+<div class="card" id="extractedPreviewCard" style="display: none;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">
+        Review Extracted Transactions
+        <span class="badge badge-info" id="extractedCountBadge">0 Extracted</span>
+      </div>
+      <div class="card-subtitle">Verify, edit, or adjust categories and amounts before confirming</div>
+    </div>
+    <button type="button" class="btn btn-primary" id="saveExtractedBtn">
+      Confirm & Save Transactions
+    </button>
+  </div>
+
+  <!-- Bulk Category Assigner Bar -->
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 0.85rem; font-weight: 600; color: #475569;">Quick Bulk Category:</span>
+      <select id="bulkCategorySelect" class="form-control form-control-sm" style="width: 220px;">
+        <option value="Food & Dining">🍔 Food & Dining</option>
+        <option value="Shopping & Retail">🛍️ Shopping & Retail</option>
+        <option value="Travel & Transport">🚗 Travel & Transport</option>
+        <option value="Personal & P2P Transfers">👥 Personal & P2P Transfers</option>
+        <option value="Bills & Utilities">⚡ Bills & Utilities</option>
+        <option value="Healthcare & Medical">🏥 Healthcare & Medical</option>
+        <option value="Education & Learning">🎓 Education & Learning</option>
+        <option value="Entertainment & Recreation">🎬 Entertainment & Recreation</option>
+        <option value="Allowances & Gifts">🎁 Allowances & Gifts</option>
+        <option value="Salary & Income">💼 Salary & Income</option>
+        <option value="General Expenses">🏷️ General Expenses</option>
+      </select>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="applyBulkCategory()">Apply to All Rows</button>
+    </div>
+    <span style="font-size: 0.78rem; color: #64748b;">💡 Tip: You can adjust individual cells below before committing.</span>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table" id="extractedTable">
+      <thead>
+        <tr>
+          <th style="width: 140px;">Date</th>
+          <th>Description</th>
+          <th style="width: 220px;">Category</th>
+          <th style="width: 120px;">Type</th>
+          <th style="width: 140px; text-align: right;">Amount (₹)</th>
+          <th style="width: 60px; text-align: center;">Remove</th>
+        </tr>
+      </thead>
+      <tbody id="extractedTableBody">
+        <!-- Injected via JavaScript -->
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    initUploadPage();
+  });
+</script>
+{% endblock %}

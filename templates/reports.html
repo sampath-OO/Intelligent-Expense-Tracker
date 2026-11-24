@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Audit Reports - Intelligent Expense Tracker{% endblock %}
+{% block header_title %}Financial Audit & Advisory Reports{% endblock %}
+{% block header_subtitle %}Comprehensive spending analysis, overspending diagnostics, AI action plans, and audit-ready downloads{% endblock %}
+
+{% block content %}
+<!-- Filter & Generation Controls -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Statement & Advisory Report Generator</div>
+      <div class="card-subtitle">Filter by month and category to generate instant PDF statements and spreadsheet exports</div>
+    </div>
+  </div>
+
+  <form method="GET" action="{{ url_for('reports_page') }}" style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 1; min-width: 170px;">
+      <label class="form-label">Statement Month</label>
+      <input type="month" name="month" class="form-control" value="{{ selected_month or '' }}">
+    </div>
+
+    <div style="flex: 1; min-width: 180px;">
+      <label class="form-label">Category Filter</label>
+      <select name="category" class="form-control">
+        <option value="all">All Categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-secondary" style="height: 42px;">Apply Filter</button>
+      <a href="{{ url_for('reports_page') }}" class="btn btn-secondary" style="height: 42px;">Reset</a>
+    </div>
+
+    <div style="margin-left: auto; display: flex; gap: 12px; flex-wrap: wrap;">
+      <a href="{{ url_for('download_csv_route', month=selected_month, category=selected_category) }}" class="btn btn-secondary" style="height: 42px;">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Download CSV Export
+      </a>
+
+      <a href="{{ url_for('download_pdf_route', month=selected_month, category=selected_category) }}" class="btn btn-primary" style="height: 42px;">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        Download Audit PDF Report
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Financial Health Scorecard -->
+<div class="summary-grid" style="margin-bottom: 24px;">
+  <div class="summary-card">
+    <div class="summary-icon icon-green">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Total Income</div>
+      <div class="summary-value" style="color: #10b981;">+₹{{ "{:,.2f}".format(total_income) }}</div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-icon icon-red">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Total Expenses</div>
+      <div class="summary-value" style="color: #ef4444;">-₹{{ "{:,.2f}".format(total_expense) }}</div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-icon icon-blue">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Net Balance</div>
+      <div class="summary-value" style="color: {% if balance >= 0 %}#2563eb{% else %}#ef4444{% endif %};">
+        ₹{{ "{:,.2f}".format(balance) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-icon icon-purple">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Health Grade</div>
+      <div class="summary-value" style="font-size: 1.15rem; color: #8b5cf6;">
+        {{ overspend_analysis.health_grade }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overspending Diagnosis & Action Plan Section -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">
+        <span>🛡️</span> Overspending Diagnosis & Prescriptive Recovery Plan
+      </div>
+      <div class="card-subtitle">AI-calculated strategies directly tailored to eliminate budget overruns</div>
+    </div>
+  </div>
+
+  {% if overspend_analysis.solutions %}
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      {% for sol in overspend_analysis.solutions %}
+        <div class="insight-card severity-{{ sol.severity }}" style="margin-bottom: 0;">
+          <div class="insight-icon" style="background: {% if sol.severity == 'danger' %}#fef2f2; color:#ef4444;{% elif sol.severity == 'warning' %}#fffbeb; color:#d97706;{% else %}#eff6ff; color:#2563eb;{% endif %}">
+            {% if sol.severity == 'danger' %}⚠️{% elif sol.severity == 'warning' %}🔔{% else %}💡{% endif %}
+          </div>
+          <div class="insight-content" style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <h4 style="margin: 0;">{{ sol.title }}</h4>
+              <span class="badge {% if sol.severity == 'danger' %}badge-expense{% elif sol.severity == 'warning' %}badge-warning{% else %}badge-info{% endif %}">
+                {{ sol.impact }}
+              </span>
+            </div>
+            <p>{{ sol.description }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="padding: 24px; text-align: center; color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+      ✓ <strong>No critical overspending detected:</strong> Your spending across all monitored categories is within budget limits.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Budget Performance Summary Table -->
+{% if budget_util['items'] %}
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Budget Allocation vs Actual Spend</div>
+        <div class="card-subtitle">Category performance for audit period</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th style="text-align: right;">Allocated Limit</th>
+            <th style="text-align: right;">Actual Spent</th>
+            <th style="text-align: right;">Remaining Limit</th>
+            <th style="text-align: center; width: 140px;">Utilization %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in budget_util['items'] %}
+            <tr>
+              <td style="font-weight: 600;">{{ b.category }}</td>
+              <td class="num-mono" style="text-align: right;">₹{{ "{:,.2f}".format(b.allocated) }}</td>
+              <td class="num-mono" style="text-align: right; color: #ef4444; font-weight: 700;">₹{{ "{:,.2f}".format(b.spent) }}</td>
+              <td class="num-mono" style="text-align: right; color: {% if b.remaining >= 0 %}#10b981{% else %}#ef4444{% endif %}; font-weight: 700;">
+                ₹{{ "{:,.2f}".format(b.remaining) }}
+              </td>
+              <td style="text-align: center;">
+                <span class="badge {% if b.percentage >= 100 %}badge-expense{% elif b.percentage >= 80 %}badge-warning{% else %}badge-income{% endif %}">
+                  {{ b.percentage }}%
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Itemized Transaction Ledger -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Itemized Statement Ledger</div>
+      <div class="card-subtitle">Showing {{ transactions|length }} transactions for selected criteria</div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th style="text-align: right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if transactions %}
+          {% for tx in transactions %}
+            <tr>
+              <td class="num-mono" style="white-space: nowrap; font-size: 0.82rem; color: #64748b;">{{ tx.date }}</td>
+              <td style="font-weight: 600; color: #0f172a;">{{ tx.description }}</td>
+              <td><span class="badge badge-info">{{ tx.category }}</span></td>
+              <td>
+                <span class="badge {% if tx.type == 'income' %}badge-income{% else %}badge-expense{% endif %}">
+                  {{ tx.type|capitalize }}
+                </span>
+              </td>
+              <td class="num-mono" style="text-align: right; font-weight: 700; color: {% if tx.type == 'income' %}#10b981{% else %}#ef4444{% endif %};">
+                {% if tx.type == 'income' %}+{% else %}-{% endif %}₹{{ "{:,.2f}".format(tx.amount) }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" style="text-align: center; color: #94a3b8; padding: 32px;">
+              No transactions match the selected filter criteria.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

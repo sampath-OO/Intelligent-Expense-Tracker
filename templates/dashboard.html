@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Intelligent Expense Tracker{% endblock %}
+{% block header_title %}Financial Overview{% endblock %}
+{% block header_subtitle %}Real-time summary of your income, expenses, and AI spending patterns{% endblock %}
+
+{% block content %}
+<!-- Executive Financial Health & Overspending Bar -->
+<div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%); color: white; border-radius: 16px; padding: 22px 28px; margin-bottom: 24px; box-shadow: 0 8px 24px rgba(37, 99, 235, 0.22); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+  <div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.88; font-weight: 700;">Financial Health Intelligence</span>
+      <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700;">AI AUDIT</span>
+    </div>
+    <div style="font-size: 1.45rem; font-weight: 800; margin-top: 4px; letter-spacing: -0.3px;">{{ overspend_analysis.health_grade }}</div>
+    <div style="font-size: 0.86rem; opacity: 0.92; margin-top: 4px;">
+      {% if overspend_analysis.has_overspending %}
+        ⚠️ Attention required: Category overspending detected. View AI recovery action plan.
+      {% else %}
+        ✓ Optimal financial trajectory: Spending remains well within established benchmarks.
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 24px; align-items: center;">
+    {% if patterns.has_data %}
+      <div>
+        <div style="font-size: 0.72rem; opacity: 0.8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Daily Burn Rate</div>
+        <div style="font-size: 1.25rem; font-weight: 800; font-family: var(--font-mono);">₹{{ "{:,.2f}".format(patterns.daily_avg) }}<span style="font-size: 0.75rem; font-weight: 500;">/day</span></div>
+      </div>
+      <div style="height: 38px; width: 1px; background: rgba(255,255,255,0.25);"></div>
+      <div>
+        <div style="font-size: 0.72rem; opacity: 0.8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Peak Outflow Day</div>
+        <div style="font-size: 1.25rem; font-weight: 800;">{{ patterns.top_spending_day }}</div>
+      </div>
+    {% endif %}
+    <a href="{{ url_for('reports_page') }}" class="btn" style="background: #ffffff; color: #1e3a8a; font-weight: 700; border: none; padding: 10px 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+      Generate Audit PDF &rarr;
+    </a>
+  </div>
+</div>
+
+<!-- Key Metrics Summary Grid -->
+<div class="summary-grid">
+  <div class="summary-card">
+    <div class="summary-icon icon-green">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Total Income</div>
+      <div class="summary-value" style="color: #10b981;">+₹{{ "{:,.2f}".format(summary.total_income) }}</div>
+      <div class="summary-trend">Across verified credits</div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-icon icon-red">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Total Expenses</div>
+      <div class="summary-value" style="color: #ef4444;">-₹{{ "{:,.2f}".format(summary.total_expense) }}</div>
+      <div class="summary-trend">{{ summary.category_breakdown|length }} Monitored Categories</div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-icon icon-blue">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Net Balance</div>
+      <div class="summary-value" style="color: {% if summary.balance >= 0 %}#2563eb{% else %}#ef4444{% endif %};">
+        ₹{{ "{:,.2f}".format(summary.balance) }}
+      </div>
+      <div class="summary-trend">Liquid retained capital</div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-icon icon-purple">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Savings Velocity</div>
+      <div class="summary-value" style="color: #8b5cf6;">₹{{ "{:,.2f}".format(summary.monthly_savings) }}</div>
+      <div class="summary-trend">
+        {% if summary.total_income > 0 %}
+          <span class="trend-up">{{ "{:.1f}%".format((summary.balance / summary.total_income) * 100) }}</span> Savings Rate
+        {% else %}
+          0.0% Rate
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-icon icon-amber">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    </div>
+    <div>
+      <div class="summary-label">Transactions</div>
+      <div class="summary-value">{{ summary.total_transactions }}</div>
+      <div class="summary-trend"><a href="{{ url_for('upload_page') }}" style="color: #2563eb; font-weight: 600; text-decoration: none;">+ Upload PDF</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Section -->
+<div class="charts-grid">
+  <!-- Monthly Trend -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Income & Expense Trend</div>
+        <div class="card-subtitle">Monthly cash flow dynamics and spending progression</div>
+      </div>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="monthlyTrendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Category Breakdown -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Category Breakdown</div>
+        <div class="card-subtitle">Expense distribution by spending category</div>
+      </div>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Multi-Column Insights & Activity Section -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+  <!-- Budget Utilization Preview -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Monthly Budget Health ({{ current_month }})</div>
+        <div class="card-subtitle">Spend vs allocated spending limits</div>
+      </div>
+      <a href="{{ url_for('budget_page') }}" class="btn btn-secondary btn-sm">Manage</a>
+    </div>
+
+    {% if budget_data['items'] %}
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        {% for b in budget_data['items'][:5] %}
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.86rem; font-weight: 600; margin-bottom: 4px;">
+              <span>{{ b.category }}</span>
+              <span class="num-mono">₹{{ "{:,.0f}".format(b.spent) }} / ₹{{ "{:,.0f}".format(b.allocated) }} ({{ b.percentage }}%)</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill {% if b.percentage >= 100 %}bg-rose{% elif b.percentage >= 80 %}bg-amber{% else %}bg-emerald{% endif %}"
+                   style="width: {{ [b.percentage, 100]|min }}%;"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="font-size: 0.88rem; color: #64748b; padding: 24px 0; text-align: center;">
+        No active budget limits configured yet.<br>
+        <a href="{{ url_for('budget_page') }}" style="font-weight: 600; color: #2563eb; display: inline-block; margin-top: 8px;">Set Category Budgets &rarr;</a>
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- Top Payees & Contacts Directory Card -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Top Payees & Merchants</div>
+        <div class="card-subtitle">Entities with highest spending volume</div>
+      </div>
+      <a href="{{ url_for('transactions_page') }}" class="btn btn-secondary btn-sm">All Records</a>
+    </div>
+
+    {% if top_payees %}
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        {% for payee in top_payees %}
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 36px; height: 36px; border-radius: 8px; background: #eff6ff; color: #2563eb; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 0.88rem;">
+                {{ (payee.description or payee.payee or 'TX')[:2]|upper }}
+              </div>
+              <div>
+                <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">{{ payee.description or payee.payee }}</div>
+                <div style="font-size: 0.76rem; color: #64748b;">{{ payee.tx_count }} transactions</div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 800; color: #dc2626; font-size: 0.95rem; font-family: var(--font-mono);">
+                ₹{{ "{:,.2f}".format(payee.total_amount) }}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="font-size: 0.88rem; color: #64748b; padding: 24px 0; text-align: center;">
+        No payee volume recorded yet.
+      </p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Recent Transactions Feed Card -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Recent Transactions</div>
+      <div class="card-subtitle">Latest financial activities across accounts</div>
+    </div>
+    <a href="{{ url_for('transactions_page') }}" class="btn btn-secondary btn-sm">View All ({{ summary.total_transactions }})</a>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th style="text-align: right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if recent_transactions %}
+          {% for tx in recent_transactions %}
+            <tr>
+              <td class="num-mono" style="white-space: nowrap; font-size: 0.82rem; color: #64748b;">{{ tx.date }}</td>
+              <td style="font-weight: 600; color: #0f172a;">{{ tx.description }}</td>
+              <td><span class="badge badge-info">{{ tx.category }}</span></td>
+              <td>
+                <span class="badge {% if tx.type == 'income' %}badge-income{% else %}badge-expense{% endif %}">
+                  {{ tx.type|capitalize }}
+                </span>
+              </td>
+              <td class="num-mono" style="text-align: right; font-weight: 700; color: {% if tx.type == 'income' %}#10b981{% else %}#ef4444{% endif %};">
+                {% if tx.type == 'income' %}+{% else %}-{% endif %}₹{{ "{:,.2f}".format(tx.amount) }}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" style="text-align: center; color: #94a3b8; padding: 32px;">
+              No transactions recorded yet. <a href="{{ url_for('upload_page') }}" style="color: #2563eb; font-weight: 600;">Upload a statement</a> to begin.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const monthlyTrendData = {{ summary.monthly_trend|tojson|safe }};
+    const categoryData = {{ summary.category_breakdown|tojson|safe }};
+
+    initMonthlyTrendChart('monthlyTrendChart', monthlyTrendData);
+    initCategoryDoughnutChart('categoryChart', categoryData);
+  });
+</script>
+{% endblock %}

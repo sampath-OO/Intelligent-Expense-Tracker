@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - Intelligent Expense Tracker{% endblock %}
+{% block header_title %}Transaction Log{% endblock %}
+{% block header_subtitle %}Search, filter, edit and manage all your historical financial transactions{% endblock %}
+
+{% block content %}
+<!-- Search and Filter Bar Card -->
+<div class="card" style="margin-bottom: 24px; padding: 20px 24px;">
+  <!-- Fast Live Instant Search & Form -->
+  <form method="GET" action="{{ url_for('transactions_page') }}" id="filterForm">
+    <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px;">
+      <div style="flex: 2; min-width: 220px;">
+        <label class="form-label">Search Description / Merchant</label>
+        <div style="position: relative;">
+          <input type="text" name="search" id="liveSearchInput" class="form-control" placeholder="Search by merchant, contact, keyword..." value="{{ search or '' }}" autocomplete="off" onkeyup="filterTransactionsLive()">
+        </div>
+      </div>
+
+      <div style="flex: 1; min-width: 160px;">
+        <label class="form-label">Category</label>
+        <select name="category" id="categorySelect" class="form-control" onchange="document.getElementById('filterForm').submit()">
+          <option value="all">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="flex: 1; min-width: 130px;">
+        <label class="form-label">Type</label>
+        <select name="type" id="typeSelect" class="form-control" onchange="document.getElementById('filterForm').submit()">
+          <option value="all">All Types</option>
+          <option value="expense" {% if selected_type == 'expense' %}selected{% endif %}>Expense (-)</option>
+          <option value="income" {% if selected_type == 'income' %}selected{% endif %}>Income (+)</option>
+        </select>
+      </div>
+
+      <div style="flex: 1; min-width: 130px;">
+        <label class="form-label">From Date</label>
+        <input type="date" name="start_date" class="form-control" value="{{ start_date or '' }}" onchange="document.getElementById('filterForm').submit()">
+      </div>
+
+      <div style="flex: 1; min-width: 130px;">
+        <label class="form-label">To Date</label>
+        <input type="date" name="end_date" class="form-control" value="{{ end_date or '' }}" onchange="document.getElementById('filterForm').submit()">
+      </div>
+
+      <div>
+        <a href="{{ url_for('transactions_page') }}" class="btn btn-secondary" style="height: 42px;">Reset Filters</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Interactive Quick Filter Chips -->
+  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--border-light);">
+    <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Quick Filter:</span>
+    <button type="button" class="filter-chip {% if selected_category == 'all' %}active{% endif %}" onclick="quickFilterCategory('all')">All</button>
+    <button type="button" class="filter-chip {% if selected_category == 'Food & Dining' %}active{% endif %}" onclick="quickFilterCategory('Food & Dining')">🍔 Food</button>
+    <button type="button" class="filter-chip {% if selected_category == 'Shopping & Retail' %}active{% endif %}" onclick="quickFilterCategory('Shopping & Retail')">🛍️ Shopping</button>
+    <button type="button" class="filter-chip {% if selected_category == 'Travel & Transport' %}active{% endif %}" onclick="quickFilterCategory('Travel & Transport')">🚗 Travel</button>
+    <button type="button" class="filter-chip {% if selected_category == 'Personal & P2P Transfers' %}active{% endif %}" onclick="quickFilterCategory('Personal & P2P Transfers')">👥 P2P Transfers</button>
+    <button type="button" class="filter-chip {% if selected_category == 'Bills & Utilities' %}active{% endif %}" onclick="quickFilterCategory('Bills & Utilities')">⚡ Bills</button>
+    <button type="button" class="filter-chip {% if selected_category == 'Healthcare & Medical' %}active{% endif %}" onclick="quickFilterCategory('Healthcare & Medical')">🏥 Healthcare</button>
+    <button type="button" class="filter-chip {% if selected_category == 'Salary & Income' %}active{% endif %}" onclick="quickFilterCategory('Salary & Income')">💼 Salary & Income</button>
+  </div>
+</div>
+
+<!-- Transactions Table Card -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">
+        All Transactions
+        <span class="badge badge-info" id="txCountBadge">{{ transactions|length }} Records</span>
+      </div>
+      <div class="card-subtitle">Showing latest records first &bull; Click table headers to sort</div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('categoryRuleModal')">
+        ⚙️ Smart Category Rules
+      </button>
+      <a href="{{ url_for('upload_page') }}" class="btn btn-secondary btn-sm">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        Upload Statement
+      </a>
+      <button type="button" class="btn btn-primary btn-sm" onclick="openModal('addTransactionModal')">
+        + Add Manual
+      </button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="data-table" id="transactionsTable">
+      <thead>
+        <tr>
+          <th class="sortable" onclick="sortTable(0)">Date &#x21C5;</th>
+          <th class="sortable" onclick="sortTable(1)">Description / Payee &#x21C5;</th>
+          <th class="sortable" onclick="sortTable(2)">Category &#x21C5;</th>
+          <th class="sortable" onclick="sortTable(3)">Type &#x21C5;</th>
+          <th class="sortable" style="text-align: right;" onclick="sortTable(4, true)">Amount &#x21C5;</th>
+          <th style="text-align: center; width: 110px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="transactionsTbody">
+        {% if transactions %}
+          {% for tx in transactions %}
+            <tr class="tx-row" data-description="{{ tx.description|lower }}" data-category="{{ tx.category|lower }}" data-type="{{ tx.type }}" data-amount="{{ tx.amount }}">
+              <td class="num-mono" style="white-space: nowrap; font-size: 0.82rem; color: #64748b;">{{ tx.date }}</td>
+              <td style="font-weight: 600; color: #0f172a;">{{ tx.description }}</td>
+              <td>
+                <span class="badge badge-info">{{ tx.category }}</span>
+              </td>
+              <td>
+                <span class="badge {% if tx.type == 'income' %}badge-income{% else %}badge-expense{% endif %}">
+                  {{ tx.type|capitalize }}
+                </span>
+              </td>
+              <td class="num-mono" style="text-align: right; font-weight: 700; color: {% if tx.type == 'income' %}#10b981{% else %}#ef4444{% endif %};">
+                {% if tx.type == 'income' %}+{% else %}-{% endif %}₹{{ "{:,.2f}".format(tx.amount) }}
+              </td>
+              <td style="text-align: center; white-space: nowrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick='editTransaction({{ tx|tojson }})' title="Edit Transaction" style="padding: 4px 8px;">
+                  ✏️
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" style="color: #ef4444; padding: 4px 8px;" onclick="deleteTransactionConfirm({{ tx.id }})" title="Delete Transaction">
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: #94a3b8; padding: 40px;">
+              No transactions found matching your criteria.<br>
+              <button class="btn btn-primary btn-sm" style="margin-top: 12px;" onclick="openModal('addTransactionModal')">Record a Transaction</button>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit Transaction Modal -->
+<div class="modal-overlay" id="editTransactionModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 class="modal-title">Edit Transaction</h3>
+      <button class="modal-close" onclick="closeModal('editTransactionModal')">&times;</button>
+    </div>
+    <form action="{{ url_for('update_transaction_route') }}" method="POST">
+      <input type="hidden" name="id" id="editTxId">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Transaction Date</label>
+          <input type="date" name="date" id="editTxDate" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description / Merchant</label>
+          <input type="text" name="description" id="editTxDesc" class="form-control" required>
+        </div>
+        <div class="form-row">
+          <div class="form-col form-group">
+            <label class="form-label">Type</label>
+            <select name="type" id="editTxType" class="form-control" required>
+              <option value="expense">Expense (-)</option>
+              <option value="income">Income (+)</option>
+            </select>
+          </div>
+          <div class="form-col form-group">
+            <label class="form-label">Category</label>
+            <select name="category" id="editTxCategory" class="form-control" required>
+              {% for cat in categories %}
+                <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (INR ₹)</label>
+          <input type="number" step="0.01" min="0.01" name="amount" id="editTxAmount" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editTransactionModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Smart Category Rules Modal -->
+<div class="modal-overlay" id="categoryRuleModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3 class="modal-title">⚙️ Smart Category Automation Rules</h3>
+      <button class="modal-close" onclick="closeModal('categoryRuleModal')">&times;</button>
+    </div>
+    <form action="{{ url_for('add_category_rule_route') }}" method="POST">
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 16px;">
+          Teach the system to automatically categorize recurring merchants or contacts (e.g. Map "Daddy" to "Allowances & Gifts", or "Paid to Varun" to "Personal & P2P Transfers").
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">Keyword or Merchant / Contact Name</label>
+          <input type="text" name="keyword" class="form-control" placeholder="e.g. Varun, Chai Point, Spotify" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Target Category</label>
+          <select name="category" class="form-control" required>
+            {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" name="reclassify" value="yes" id="reclassifyCheck" checked>
+          <label for="reclassifyCheck" style="font-size: 0.85rem; color: #334155; cursor: pointer;">
+            Re-classify all existing transactions matching this rule
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('categoryRuleModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Rule</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function quickFilterCategory(cat) {
+    const select = document.getElementById('categorySelect');
+    if (select) {
+      select.value = cat;
+      document.getElementById('filterForm').submit();
+    }
+  }
+
+  function filterTransactionsLive() {
+    const input = document.getElementById('liveSearchInput');
+    const filter = input.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#transactionsTbody .tx-row');
+    let visible = 0;
+
+    rows.forEach(row => {
+      const desc = row.getAttribute('data-description') || '';
+      const cat = row.getAttribute('data-category') || '';
+      if (!filter || desc.includes(filter) || cat.includes(filter)) {
+        row.style.display = '';
+        visible++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    const badge = document.getElementById('txCountBadge');
+    if (badge) {
+      badge.textContent = `${visible} Records`;
+    }
+  }
+
+  // Sortable table implementation
+  let sortDirections = {};
+  function sortTable(colIndex, isNumeric = false) {
+    const table = document.getElementById("transactionsTable");
+    const tbody = table.querySelector("tbody");
+    const rows = Array.from(tbody.querySelectorAll("tr.tx-row"));
+    
+    sortDirections[colIndex] = !sortDirections[colIndex];
+    const asc = sortDirections[colIndex];
+
+    rows.sort((a, b) => {
+      let valA = a.children[colIndex].innerText.trim();
+      let valB = b.children[colIndex].innerText.trim();
+
+      if (isNumeric) {
+        valA = parseFloat(valA.replace(/[^0-9.-]+/g, "")) || 0;
+        valB = parseFloat(valB.replace(/[^0-9.-]+/g, "")) || 0;
+        return asc ? valA - valB : valB - valA;
+      } else {
+        return asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+    });
+
+    rows.forEach(row => tbody.appendChild(row));
+  }
+</script>
+{% endblock %}
