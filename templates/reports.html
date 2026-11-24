@@ -2,7 +2,7 @@
 
 {% block title %}Financial Audit Reports - Intelligent Expense Tracker{% endblock %}
 {% block header_title %}Financial Audit & Advisory Reports{% endblock %}
-{% block header_subtitle %}Comprehensive spending analysis, overspending diagnostics, AI action plans, and audit-ready downloads{% endblock %}
+{% block header_subtitle %}Comprehensive AI spending analysis, 50/30/20 diagnostics, micro-leakage audits, and audit-ready downloads{% endblock %}
 
 {% block content %}
 <!-- Filter & Generation Controls -->
@@ -50,13 +50,13 @@
 </div>
 
 <!-- Financial Health Scorecard -->
-<div class="summary-grid" style="margin-bottom: 24px;">
+<div class="summary-grid" style="margin-bottom: 20px;">
   <div class="summary-card">
     <div class="summary-icon icon-green">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
     </div>
     <div>
-      <div class="summary-label">Total Income</div>
+      <div class="summary-label">Total Verified Inflow</div>
       <div class="summary-value" style="color: #10b981;">+₹{{ "{:,.2f}".format(total_income) }}</div>
     </div>
   </div>
@@ -66,7 +66,7 @@
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
     </div>
     <div>
-      <div class="summary-label">Total Expenses</div>
+      <div class="summary-label">Total Outflow</div>
       <div class="summary-value" style="color: #ef4444;">-₹{{ "{:,.2f}".format(total_expense) }}</div>
     </div>
   </div>
@@ -76,7 +76,7 @@
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
     </div>
     <div>
-      <div class="summary-label">Net Balance</div>
+      <div class="summary-label">Net Retained Balance</div>
       <div class="summary-value" style="color: {% if balance >= 0 %}#2563eb{% else %}#ef4444{% endif %};">
         ₹{{ "{:,.2f}".format(balance) }}
       </div>
@@ -90,18 +90,76 @@
     <div>
       <div class="summary-label">Health Grade</div>
       <div class="summary-value" style="font-size: 1.15rem; color: #8b5cf6;">
-        {{ overspend_analysis.health_grade }}
+        {{ overspend_analysis.health_grade.split('—')[0].strip() }}
       </div>
     </div>
   </div>
 </div>
 
-<!-- Overspending Diagnosis & Action Plan Section -->
+<!-- AI Executive Diagnosis -->
+<div class="card" style="margin-bottom: 24px; background: #f8fafc; border-color: #cbd5e1;">
+  <div style="font-size: 0.92rem; color: #1e293b; line-height: 1.5;">
+    <strong>🤖 AI Executive Diagnosis:</strong> {{ overspend_analysis.executive_summary }}
+  </div>
+</div>
+
+<!-- 1. 50/30/20 Rule Breakdown -->
+{% if overspend_analysis.rule_50_30_20 %}
+  {% set r50 = overspend_analysis.rule_50_30_20 %}
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">1. In-Depth 50/30/20 Spending Health Diagnosis</div>
+        <div class="card-subtitle">Macro-budget allocation analysis vs financial health benchmarks</div>
+      </div>
+    </div>
+
+    <div class="summary-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 14px;">
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+        <div style="font-weight: 700; font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Essential Needs (Target: 50%)</div>
+        <div class="num-mono" style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 4px;">
+          ₹{{ "{:,.2f}".format(r50.needs_amount) }}
+        </div>
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+          {{ r50.needs_pct }}% of Inflow &bull; <strong>{{ r50.needs_status }}</strong>
+        </div>
+      </div>
+
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+        <div style="font-weight: 700; font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Discretionary Wants (Target: 30%)</div>
+        <div class="num-mono" style="font-size: 1.35rem; font-weight: 800; color: #0f172a; margin-top: 4px;">
+          ₹{{ "{:,.2f}".format(r50.wants_amount) }}
+        </div>
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+          {{ r50.wants_pct }}% of Inflow &bull; <strong>{{ r50.wants_status }}</strong>
+        </div>
+      </div>
+
+      <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+        <div style="font-weight: 700; font-size: 0.8rem; color: #64748b; text-transform: uppercase;">Net Savings & Capital (Target: 20%)</div>
+        <div class="num-mono" style="font-size: 1.35rem; font-weight: 800; color: #16a34a; margin-top: 4px;">
+          ₹{{ "{:,.2f}".format(r50.savings_amount) }}
+        </div>
+        <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">
+          {{ r50.savings_pct }}% of Inflow &bull; <strong>{{ r50.savings_status }}</strong>
+        </div>
+      </div>
+    </div>
+
+    {% if r50.ai_commentary %}
+      <div style="font-size: 0.85rem; color: #475569; background: #f1f5f9; padding: 10px 14px; border-radius: 8px;">
+        💡 <strong>AI Commentary:</strong> {{ r50.ai_commentary }}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+<!-- 2. Overspending Diagnosis & Action Plan Section -->
 <div class="card" style="margin-bottom: 24px;">
   <div class="card-header">
     <div>
       <div class="card-title">
-        <span>🛡️</span> Overspending Diagnosis & Prescriptive Recovery Plan
+        <span>🛡️</span> 2. Overspending Diagnosis & Root-Cause Solutions
       </div>
       <div class="card-subtitle">AI-calculated strategies directly tailored to eliminate budget overruns</div>
     </div>
@@ -133,12 +191,52 @@
   {% endif %}
 </div>
 
-<!-- Budget Performance Summary Table -->
+<!-- 3. Micro-Expense Leakage Audit -->
+{% if overspend_analysis.micro_leakage %}
+  {% set mleak = overspend_analysis.micro_leakage %}
+  <div class="card" style="margin-bottom: 24px; background: #fefce8; border-color: #fef08a;">
+    <div class="card-header" style="border-bottom: 1px solid #fef08a;">
+      <div>
+        <div class="card-title" style="color: #713f12;">3. Micro-Expense Leakage Audit (&le; ₹50 Small Outflows)</div>
+        <div class="card-subtitle" style="color: #854d0e;">High-frequency UPI payments compounding into unseen outflows</div>
+      </div>
+    </div>
+    <div style="padding: 16px 0; color: #334155; font-size: 0.88rem; line-height: 1.5;">
+      <strong>Findings:</strong> {{ mleak.explanation }}<br/>
+      <strong>Prescription:</strong> {{ mleak.prescription }}
+    </div>
+  </div>
+{% endif %}
+
+<!-- 4. Prescriptive 30-Day Recovery Roadmap -->
+{% if overspend_analysis.recovery_roadmap %}
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+      <div>
+        <div class="card-title">4. Prescriptive 30-Day Financial Recovery Roadmap</div>
+        <div class="card-subtitle">Phased 4-week step-by-step milestone execution plan</div>
+      </div>
+    </div>
+
+    <div class="grid-2-col" style="grid-template-columns: repeat(4, 1fr); gap: 14px;">
+      {% for rm in overspend_analysis.recovery_roadmap %}
+        <div style="padding: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px;">
+          <div style="font-size: 0.74rem; font-weight: 700; color: #0284c7; text-transform: uppercase;">{{ rm.week }}</div>
+          <div style="font-weight: 800; font-size: 0.95rem; color: #0c4a6e; margin-top: 4px;">{{ rm.phase }}</div>
+          <p style="font-size: 0.8rem; color: #334155; margin-top: 6px; margin-bottom: 8px;">{{ rm.action }}</p>
+          <div style="font-size: 0.82rem; font-weight: 700; color: #16a34a;">Target: {{ rm.target_savings }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+<!-- 5. Budget Allocation vs Actual Spend Matrix -->
 {% if budget_util['items'] %}
   <div class="card" style="margin-bottom: 24px;">
     <div class="card-header">
       <div>
-        <div class="card-title">Budget Allocation vs Actual Spend</div>
+        <div class="card-title">5. Budget Allocation vs Actual Spend Performance</div>
         <div class="card-subtitle">Category performance for audit period</div>
       </div>
     </div>
@@ -176,11 +274,11 @@
   </div>
 {% endif %}
 
-<!-- Itemized Transaction Ledger -->
+<!-- 6. Itemized Statement Ledger -->
 <div class="card">
   <div class="card-header">
     <div>
-      <div class="card-title">Itemized Statement Ledger</div>
+      <div class="card-title">6. Itemized Statement Ledger</div>
       <div class="card-subtitle">Showing {{ transactions|length }} transactions for selected criteria</div>
     </div>
   </div>

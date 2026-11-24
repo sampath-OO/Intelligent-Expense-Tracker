@@ -320,17 +320,37 @@ def compare_monthly_spending(transactions_df):
         "category_comparison": category_changes
     }
 
-def generate_overspending_solutions(transactions_df, budget_utilization=None):
+def compute_financial_health_audit(transactions_df, budget_utilization=None):
     """
-    Diagnoses budget overspending and calculates concrete, actionable solutions.
+    Computes an executive-grade AI Financial Health Audit & Diagnosis.
+    Returns comprehensive spending health metrics, 50/30/20 breakdown,
+    category surge analysis, micro-leakage analysis, anomaly reviews, and a 30-day recovery roadmap.
     """
     if transactions_df.empty:
         return {
-            "has_overspending": False,
-            "overspent_categories": [],
+            "has_data": False,
+            "total_income": 0.0,
+            "total_expense": 0.0,
+            "balance": 0.0,
+            "savings_rate": 0.0,
+            "health_grade": "Grade A — Baseline Standby",
+            "grade_code": "A",
+            "health_status": "No transaction records found for this period.",
+            "executive_summary": "No transaction records found for this evaluation period. Ingest bank statements to activate automated AI diagnostics.",
+            "rule_50_30_20": {
+                "needs_amount": 0.0, "needs_pct": 0.0, "needs_benchmark": 50.0, "needs_variance": 0.0, "needs_status": "Optimal",
+                "wants_amount": 0.0, "wants_pct": 0.0, "wants_benchmark": 30.0, "wants_variance": 0.0, "wants_status": "Optimal",
+                "savings_amount": 0.0, "savings_pct": 0.0, "savings_benchmark": 20.0, "savings_variance": 0.0, "savings_status": "Optimal",
+                "ai_commentary": "Awaiting expense ingestion to diagnose 50/30/20 budget alignment."
+            },
+            "category_surges": [],
+            "micro_leakage": {"count": 0, "total_amount": 0.0, "pct_of_total": 0.0, "annualized_projection": 0.0, "detected": False, "explanation": "No micro-expense leakage detected.", "prescription": "Maintain vigilance on recurring UPI taps."},
+            "anomalies": [],
+            "recovery_roadmap": [],
             "solutions": [],
-            "health_grade": "A",
-            "health_status": "No expenses recorded."
+            "has_overspending": False,
+            "total_overspend_amount": 0.0,
+            "overspent_categories": []
         }
 
     expenses_df = transactions_df[transactions_df["type"] == "expense"].copy()
@@ -338,13 +358,15 @@ def generate_overspending_solutions(transactions_df, budget_utilization=None):
 
     total_income = float(income_df["amount"].sum()) if not income_df.empty else 0.0
     total_expense = float(expenses_df["amount"].sum()) if not expenses_df.empty else 0.0
+    balance = total_income - total_expense
+    savings_rate = (balance / total_income * 100.0) if total_income > 0 else 0.0
 
+    # Overspent budget items
     overspent_items = []
     total_overspend = 0.0
-
     if budget_utilization and budget_utilization.get("items"):
         for b in budget_utilization["items"]:
-            if b["status"] == "exceeded" and b["allocated"] > 0:
+            if b.get("status") == "exceeded" and b.get("allocated", 0) > 0:
                 surplus = b["spent"] - b["allocated"]
                 total_overspend += surplus
                 overspent_items.append({
@@ -355,89 +377,231 @@ def generate_overspending_solutions(transactions_df, budget_utilization=None):
                     "percentage": b["percentage"]
                 })
 
-    # Actionable Solutions formulation
-    solutions = []
+    # Health Grade Determination
+    if total_income > 0:
+        net_ratio = balance / total_income
+        if total_overspend > 0 or net_ratio < 0:
+            health_grade = "Grade D — Critical Overspending Deficit"
+            grade_code = "D"
+        elif net_ratio < 0.10:
+            health_grade = "Grade C — Borderline Reserves (High Volatility)"
+            grade_code = "C"
+        elif net_ratio < 0.25:
+            health_grade = "Grade B — Stable Financial Equilibrium"
+            grade_code = "B"
+        elif net_ratio < 0.40:
+            health_grade = "Grade A — High Capital Efficiency"
+            grade_code = "A"
+        else:
+            health_grade = "Grade A+ — Pristine Financial Discipline"
+            grade_code = "A+"
+    else:
+        health_grade = "Grade B — Baseline Operating Mode (Unlinked Salary Inflow)"
+        grade_code = "B"
 
-    # Solution 1: Overspent Category Emergency Caps
+    # Executive Summary Narrative
+    if total_income > 0:
+        if balance > 0:
+            if savings_rate >= 20.0:
+                summary_narrative = (
+                    f"Your current cash flow demonstrates strong financial resilience with a net savings rate of {savings_rate:.1f}%, "
+                    f"exceeding the standard 20% benchmark. Liquid retained capital stands at ₹{balance:,.2f}. Continued discipline in "
+                    f"maintaining discretionary expenditure within established bounds will compound your capital growth."
+                )
+            else:
+                summary_narrative = (
+                    f"Your monthly net savings rate is currently {savings_rate:.1f}%, falling below the recommended 20% capital preservation standard. "
+                    f"While cash flow remains positive (+₹{balance:,.2f}), discretionary spending represents an elevated proportion of your total income, "
+                    f"increasing vulnerability to unexpected financial shocks."
+                )
+        else:
+            summary_narrative = (
+                f"Critical Financial Alert: Total expenses exceed recognized income by ₹{abs(balance):,.2f}, resulting in an active cash flow deficit "
+                f"(-{abs(savings_rate):.1f}%). Immediate expenditure rationing and debt avoidance measures are strongly advised to restore capital equilibrium."
+            )
+    else:
+        summary_narrative = (
+            f"Expenses totaling ₹{total_expense:,.2f} have been recorded across {len(expenses_df)} debits without corresponding recorded salary or income credits. "
+            f"Ensure digital statement deposits are ingested to unlock complete ratio benchmarking."
+        )
+
+    # 50/30/20 Rule Analysis
+    needs_cats = ["Bills & Utilities", "Healthcare & Medical", "Travel & Transport", "Education & Learning", "Groceries & Supermarket", "General Expenses"]
+    wants_cats = ["Food & Dining", "Shopping & Retail", "Entertainment & Recreation", "Personal & P2P Transfers", "Personal Transfers", "Others"]
+
+    needs_spent = float(expenses_df[expenses_df["category"].isin(needs_cats)]["amount"].sum()) if not expenses_df.empty else 0.0
+    wants_spent = float(expenses_df[expenses_df["category"].isin(wants_cats)]["amount"].sum()) if not expenses_df.empty else 0.0
+    retained_savings = max(0.0, balance)
+
+    base_flow = total_income if total_income > 0 else (total_expense or 1.0)
+    needs_pct = (needs_spent / base_flow) * 100.0
+    wants_pct = (wants_spent / base_flow) * 100.0
+    savings_pct = (retained_savings / base_flow) * 100.0
+
+    needs_variance = needs_pct - 50.0
+    wants_variance = wants_pct - 30.0
+    savings_variance = savings_pct - 20.0
+
+    if wants_pct > 35.0:
+        wants_commentary = (
+            f"Discretionary spending ('Wants') consumes {wants_pct:.1f}% of resources (exceeding the optimal 30% ceiling). "
+            f"Trimming discretionary lifestyle outlays by ₹{(wants_spent - base_flow * 0.30):,.2f}/month will directly restore your target 20% savings velocity."
+        )
+    elif wants_pct <= 30.0:
+        wants_commentary = f"Discretionary spending is well calibrated at {wants_pct:.1f}% of income, comfortably below the 30% upper ceiling."
+    else:
+        wants_commentary = f"Discretionary spending is slightly elevated at {wants_pct:.1f}%. Minor adjustments to dining and entertainment will keep it under control."
+
+    rule_50_30_20 = {
+        "needs_amount": round(needs_spent, 2),
+        "needs_pct": round(needs_pct, 1),
+        "needs_benchmark": 50.0,
+        "needs_variance": round(needs_variance, 1),
+        "needs_status": "Over (+%.1f%%)" % needs_variance if needs_variance > 2 else ("Under (%.1f%%)" % needs_variance if needs_variance < -2 else "Optimal"),
+        "wants_amount": round(wants_spent, 2),
+        "wants_pct": round(wants_pct, 1),
+        "wants_benchmark": 30.0,
+        "wants_variance": round(wants_variance, 1),
+        "wants_status": "Over (+%.1f%%)" % wants_variance if wants_variance > 2 else ("Under (%.1f%%)" % wants_variance if wants_variance < -2 else "Optimal"),
+        "savings_amount": round(retained_savings, 2),
+        "savings_pct": round(savings_pct, 1),
+        "savings_benchmark": 20.0,
+        "savings_variance": round(savings_variance, 1),
+        "savings_status": "Surplus (+%.1f%%)" % savings_variance if savings_variance > 2 else ("Deficit (%.1f%%)" % savings_variance if savings_variance < -2 else "Optimal"),
+        "ai_commentary": wants_commentary
+    }
+
+    # Micro-Expense Leakage (< ₹50)
+    micro_df = expenses_df[expenses_df["amount"] <= 50.0]
+    micro_count = len(micro_df)
+    micro_total = float(micro_df["amount"].sum()) if not micro_df.empty else 0.0
+    micro_pct = (micro_total / total_expense * 100.0) if total_expense > 0 else 0.0
+    annualized_leakage = micro_total * 12.0
+
+    micro_leakage = {
+        "count": micro_count,
+        "total_amount": round(micro_total, 2),
+        "pct_of_total": round(micro_pct, 1),
+        "annualized_projection": round(annualized_leakage, 2),
+        "detected": micro_count >= 5,
+        "explanation": f"Identified {micro_count} micro-payments of ₹50 or less totaling ₹{micro_total:,.2f}. High-frequency UPI payments for tea, snacks, and convenience purchases compound into an estimated ₹{annualized_leakage:,.2f} in unseen annual outflow.",
+        "prescription": f"Allocate a fixed weekly cash envelope or separate pre-funded digital wallet (e.g. ₹{max(200.0, micro_total/4):,.0f}/week) to enforce an automated ceiling on micro-leakage."
+    }
+
+    # Anomaly Analysis (Isolation Forest)
+    anomalies = detect_unusual_transactions(transactions_df)
+
+    # Category Surges & Solutions
+    category_surges = []
+    solutions = []
     if overspent_items:
         for item in overspent_items:
             cat = item["category"]
             over = item["overspent_by"]
             pct = item["percentage"]
-            solutions.append({
-                "title": f"Freeze & Cap {cat} Immediately",
+            sol = {
+                "category": cat,
+                "title": f"Freeze & Cap {cat} Discretionary Spending",
                 "severity": "danger",
-                "impact": f"Save ₹{over:,.2f}",
-                "description": f"You have exceeded your {cat} budget by ₹{over:,.2f} ({pct:.0f}% utilized). Pause non-essential purchases in {cat} for the rest of this month to avoid worsening deficit."
-            })
+                "impact": f"Save ₹{over:,.2f}/mo",
+                "description": f"Actual spend of ₹{item['spent']:,.2f} exceeded your allocated limit of ₹{item['allocated']:,.2f} by ₹{over:,.2f} ({pct:.0f}% utilization). Enforce an immediate expenditure freeze on {cat} for the remainder of the billing period.",
+                "root_cause": f"Concentration of discretionary purchases and lack of real-time mid-month spend alerts led to exceeding the {cat} limit."
+            }
+            category_surges.append(sol)
+            solutions.append(sol)
 
-    # Solution 2: Personal P2P Transfer Consolidation
-    p2p_df = expenses_df[expenses_df["category"] == "Personal & P2P Transfers"]
-    if not p2p_df.empty:
-        p2p_total = float(p2p_df["amount"].sum())
-        p2p_count = len(p2p_df)
-        if p2p_count >= 8:
-            solutions.append({
-                "title": "Consolidate High-Frequency P2P Transfers",
-                "severity": "warning",
-                "impact": f"Target Savings: ₹{p2p_total * 0.20:,.2f}/mo",
-                "description": f"You made {p2p_count} individual peer transfers totaling ₹{p2p_total:,.2f}. Frequent small UPI transfers often lead to untracked budget leakage. Setting a weekly allowance of ₹{p2p_total/4:,.0f} could save ~20%."
-            })
+    # P2P Transfer check
+    p2p_df = expenses_df[expenses_df["category"].isin(["Personal & P2P Transfers", "Personal Transfers"])]
+    if not p2p_df.empty and len(p2p_df) >= 6:
+        p2p_sum = float(p2p_df["amount"].sum())
+        p2p_sol = {
+            "category": "Personal & P2P Transfers",
+            "title": "Consolidate High-Frequency P2P Transfers",
+            "severity": "warning",
+            "impact": f"Target Savings: ₹{p2p_sum * 0.20:,.2f}/mo",
+            "description": f"Recorded {len(p2p_df)} individual peer transfers aggregating to ₹{p2p_sum:,.2f}. Unbudgeted peer-to-peer transfers create significant cash drift.",
+            "root_cause": "Frequent informal digital transfers without strict monthly caps."
+        }
+        solutions.append(p2p_sol)
 
-    # Solution 3: Micro-Transaction Accumulation Control (< ₹50)
-    micro_df = expenses_df[expenses_df["amount"] <= 50.0]
-    if len(micro_df) >= 10:
-        micro_sum = float(micro_df["amount"].sum())
+    # Micro-transaction solution
+    if micro_count >= 8:
         solutions.append({
-            "title": "Plug Micro-Expense Leakage (< ₹50 payments)",
+            "category": "Micro-Expenses",
+            "title": "Plug Sub-₹50 Micro-Expense Drain",
             "severity": "info",
-            "impact": f"Leakage: ₹{micro_sum:,.2f}",
-            "description": f"You have {len(micro_df)} micro-payments of ₹50 or less totaling ₹{micro_sum:,.2f}. These small frequent snacks, teas, and quick UPI taps quietly consume a large portion of your monthly cash flow."
+            "impact": f"Prevent Leakage: ₹{micro_total:,.2f}/mo",
+            "description": micro_leakage["explanation"],
+            "root_cause": "Frictionless instant UPI micro-payments escaping conscious budgeting."
         })
 
-    # Solution 4: 50/30/20 Budget Realignment
-    if total_income > 0:
-        needs_cats = ["Bills & Utilities", "Healthcare & Medical", "Travel & Transport", "Education & Learning"]
-        wants_cats = ["Food & Dining", "Shopping & Retail", "Entertainment & Recreation", "Personal & P2P Transfers"]
+    # 50/30/20 Discretionary Realignment solution
+    if wants_pct > 35.0:
+        surplus_wants = wants_spent - (base_flow * 0.30)
+        solutions.append({
+            "category": "Discretionary Lifestyle",
+            "title": "50/30/20 Discretionary Capital Rebalancing",
+            "severity": "warning",
+            "impact": f"Recapture: ₹{surplus_wants:,.2f}/mo",
+            "description": f"Wants currently consume {wants_pct:.1f}% of income (ideal: 30%). Trimming discretionary outlays by ₹{surplus_wants:,.2f} will elevate net savings to 20%.",
+            "root_cause": "Elevated dining out, shopping retail, and entertainment expenditure."
+        })
 
-        needs_spent = float(expenses_df[expenses_df["category"].isin(needs_cats)]["amount"].sum())
-        wants_spent = float(expenses_df[expenses_df["category"].isin(wants_cats)]["amount"].sum())
-        savings = max(0.0, total_income - total_expense)
-
-        needs_pct = (needs_spent / total_income) * 100
-        wants_pct = (wants_spent / total_income) * 100
-        savings_pct = (savings / total_income) * 100
-
-        if wants_pct > 35:
-            surplus_wants = wants_spent - (total_income * 0.30)
-            solutions.append({
-                "title": "50/30/20 Rule Discretionary Realignment",
-                "severity": "warning",
-                "impact": f"Reallocate: ₹{surplus_wants:,.2f}",
-                "description": f"Discretionary spending ('Wants') is currently taking {wants_pct:.1f}% of your total income (optimal: 30%). Trimming discretionary purchases by ₹{surplus_wants:,.2f} will restore your savings rate to 20%."
-            })
-
-    # Health Grade
-    if total_income > 0:
-        net_ratio = (total_income - total_expense) / total_income
-        if total_overspend > 0 or net_ratio < 0:
-            health_grade = "D (Overspending Deficit)"
-        elif net_ratio < 0.10:
-            health_grade = "C (Borderline Savings)"
-        elif net_ratio < 0.25:
-            health_grade = "B (Healthy & Balanced)"
-        else:
-            health_grade = "A (Exceptional Financial Discipline)"
-    else:
-        health_grade = "B (Unclassified Income Baseline)"
+    # Prescriptive 30-Day Recovery Roadmap
+    roadmap = [
+        {
+            "week": "Week 1 (Days 1–7)",
+            "phase": "Immediate Triage & Budget Freeze",
+            "action": "Halt discretionary outlays in overspent categories. Audit all pending recurring payments.",
+            "target_savings": f"₹{max(500.0, total_overspend * 0.50):,.2f}" if total_overspend > 0 else "₹1,000.00"
+        },
+        {
+            "week": "Week 2 (Days 8–14)",
+            "phase": "Micro-Leakage & Subscription Audit",
+            "action": "Review digital subscriptions; switch high-frequency small UPI taps to a pre-funded weekly pocket allowance.",
+            "target_savings": f"₹{max(300.0, micro_total):,.2f}"
+        },
+        {
+            "week": "Week 3 (Days 15–21)",
+            "phase": "Impulse Cooling Guardrail",
+            "action": "Implement a strict 48-hour cooling-off rule on any non-essential purchase exceeding ₹500.",
+            "target_savings": f"₹{max(750.0, wants_spent * 0.15):,.2f}" if wants_spent > 0 else "₹1,200.00"
+        },
+        {
+            "week": "Week 4 (Days 22–30)",
+            "phase": "Automated Pay-Yourself-First System",
+            "action": "Schedule an automatic recurring transfer of 20% of income directly into high-yield savings on salary day.",
+            "target_savings": f"₹{max(2000.0, total_income * 0.20):,.2f}" if total_income > 0 else "₹2,500.00"
+        }
+    ]
 
     return {
+        "has_data": True,
+        "total_income": round(total_income, 2),
+        "total_expense": round(total_expense, 2),
+        "balance": round(balance, 2),
+        "savings_rate": round(savings_rate, 1),
+        "health_grade": health_grade,
+        "grade_code": grade_code,
+        "health_status": summary_narrative,
+        "executive_summary": summary_narrative,
+        "rule_50_30_20": rule_50_30_20,
+        "category_surges": category_surges,
+        "micro_leakage": micro_leakage,
+        "anomalies": anomalies,
+        "recovery_roadmap": roadmap,
+        "solutions": solutions,
         "has_overspending": len(overspent_items) > 0 or total_expense > total_income,
         "total_overspend_amount": round(total_overspend, 2),
-        "overspent_categories": overspent_items,
-        "solutions": solutions,
-        "health_grade": health_grade
+        "overspent_categories": overspent_items
     }
+
+def generate_overspending_solutions(transactions_df, budget_utilization=None):
+    """
+    Diagnoses budget overspending and calculates concrete, actionable solutions.
+    Leverages compute_financial_health_audit for unified diagnosis.
+    """
+    return compute_financial_health_audit(transactions_df, budget_utilization)
 
 def generate_personalized_recommendations(transactions_df, budget_utilization=None):
     recommendations = []

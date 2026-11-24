@@ -249,6 +249,20 @@ def transactions_page():
         search=search
     )
 
+@app.route("/merchants")
+@login_required
+def merchants_page():
+    user_id = session["user_id"]
+    top_payees = database.get_top_payees(user_id, limit=50)
+    rules = database.get_category_rules(user_id)
+    return render_template(
+        "merchants.html",
+        active_page="merchants",
+        payees=top_payees,
+        rules=rules,
+        categories=database.ALL_CATEGORIES
+    )
+
 @app.route("/api/category-rule/add", methods=["POST"])
 @login_required
 def add_category_rule_route():
@@ -259,7 +273,7 @@ def add_category_rule_route():
 
     if not keyword or not category:
         flash("Contact/Merchant Name and Category are required.", "error")
-        return redirect(request.referrer or url_for("transactions_page"))
+        return redirect(request.referrer or url_for("merchants_page"))
 
     success, msg = database.save_category_rule(user_id, keyword, category, reclassify_existing=reclassify)
     if success:
@@ -267,7 +281,18 @@ def add_category_rule_route():
     else:
         flash(f"Error saving rule: {msg}", "error")
 
-    return redirect(request.referrer or url_for("transactions_page"))
+    return redirect(request.referrer or url_for("merchants_page"))
+
+@app.route("/api/category-rule/delete/<int:rule_id>", methods=["POST"])
+@login_required
+def delete_category_rule_route(rule_id):
+    user_id = session["user_id"]
+    deleted = database.delete_category_rule(rule_id, user_id)
+    if deleted:
+        flash("Automation rule removed successfully.", "success")
+    else:
+        flash("Rule not found or unauthorized.", "error")
+    return redirect(request.referrer or url_for("merchants_page"))
 
 @app.route("/api/transaction/add", methods=["POST"])
 @login_required

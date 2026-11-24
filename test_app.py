@@ -187,17 +187,22 @@ class TestExpenseTracker(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b"AI Financial Insights", resp.data)
 
-        # 7. Reports page
+        # 7. Merchants page
+        resp = self.client.get("/merchants")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(b"Merchants & Payees Directory", resp.data)
+
+        # 8. Reports page
         resp = self.client.get("/reports")
         self.assertEqual(resp.status_code, 200)
         self.assertIn(b"Financial Audit & Advisory Reports", resp.data)
 
-        # 8. CSV Download
+        # 9. CSV Download
         resp = self.client.get("/reports/download/csv")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.mimetype, "text/csv")
 
-        # 9. PDF Download
+        # 10. PDF Download
         resp = self.client.get("/reports/download/pdf")
         self.assertEqual(resp.status_code, 200)
         self.assertIn("pdf", resp.mimetype)
